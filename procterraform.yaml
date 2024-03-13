@@ -1,0 +1,24 @@
+name: Deploy Terraform
+on:
+  push:
+   branches:
+    - dev
+env:
+  GCP_PROJECT_ID: ${{vars.PROJECT_ID}}
+  REGION: asia-south1
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Configure gcloud CLI
+      uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ secrets.JSON_SOURCE_SERVICE_ACCOUNT }}
+    - name: deploy tf
+      run: |
+        cd terraform
+        terraform init
+        terraform plan
+    #   terraform apply --auto-approve

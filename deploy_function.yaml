@@ -1,0 +1,36 @@
+# name: Deploy SCD2 function
+# on:
+#   push:
+#    branches:
+#     - dev
+#    paths:
+#       - 'constant.py'
+# env:
+#   GCP_PROJECT_ID: carbon-data-sourcing-dev
+#   REGION: asia-south1
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v3
+#     - name: Configure gcloud CLI
+#       uses: google-github-actions/auth@v0
+#       with:
+#         credentials_json: ${{ secrets.JSON_SOURCE_SERVICE_ACCOUNT }}
+#     - name: deploy functions
+#       run: |
+#        cd proc_layer_Bigquery
+#        gcloud functions deploy processedLayerRefresh \
+#        --runtime=python310 \
+#        --region=asia-south1 \
+#        --trigger-http \
+#        --entry-point=processed_data \
+#        --allow-unauthenticated
+
+#     # - name: terraform deploy
+#     #   run: |
+#     #     cd terraform 
+#     #     terraform init
+#     #     terraform plan
+#     #     terraform apply --auto-approve

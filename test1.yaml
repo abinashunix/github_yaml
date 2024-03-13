@@ -1,0 +1,69 @@
+name: Deploy carbon-registry-links-crappers
+on:
+  push:
+   branches:
+    - dev
+    - prod
+   paths:
+    - 'carbon-registry-links/**'
+    - '.github/workflows/cloud-run-jobs.yaml'
+env:
+  GCP_PROJECT_ID: ${{vars.PROJECT_ID}}
+  TF_VAR_project_id: ${{vars.PROJECT_ID}}
+  TF_VAR_backend_bucket: ${{vars.BACKEND_BUCKET}}
+  TF_VAR_service_account: ${{vars.SERVICE_ACCOUNT}}
+  IMAGE_REGISTRY: asia.gcr.io
+  IMAGE_NAME: raw-layer-scraper-link-image
+  REGION: asia-south1
+  TF_VAR_github_sha: ${{github.sha}}
+jobs:
+  build-and-deploy-dev:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev'
+    environment: dev
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Configure gcloud CLI
+      uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ secrets.JSON_SOURCE_SERVICE_ACCOUNT }}
+        
+    - name: Build and push Docker images
+      run: |
+        gcloud auth configure-docker $IMAGE_REGISTRY
+        cd carbon-registry-links && docker build -t $IMAGE_REGISTRY/$GCP_PROJECT_ID/$IMAGE_NAME: ${{github.sha}} --build-arg GCP_PROJECT_ID="$GCP_PROJECT_ID"  .
+        docker push $IMAGE_REGISTRY/$GCP_PROJECT_ID/$IMAGE_NAME: ${{github.sha}}
+
+    - name: deploy terraform
+      run: |
+        cd terraform
+        terraform init -backend-config="bucket=${{vars.BACKEND_BUCKET}}"
+        terraform plan
+        terraform apply --auto-approve 
+  
+  build-and-deploy-prod:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/prod'
+    environment: prod
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Configure gcloud CLI
+      uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ secrets.JSON_SOURCE_SERVICE_ACCOUNT }}
+         
+    - name: Build and push Docker images
+      run: |
+        gcloud auth configure-docker $IMAGE_REGISTRY
+        cd carbon-registry-links && docker build -t $IMAGE_REGISTRY/$GCP_PROJECT_ID/$IMAGE_NAME: ${{github.sha}} --build-arg GCP_PROJECT_ID="$GCP_PROJECT_ID"  .
+        docker push $IMAGE_REGISTRY/$GCP_PROJECT_ID/$IMAGE_NAME: ${{github.sha}}
+  
+   
+    - name: deploy terraform
+      run: |
+        cd terraform
+        terraform init -backend-config="bucket=${{vars.BACKEND_BUCKET}}"
+        terraform plan
+        terraform apply --auto-approve 

@@ -1,0 +1,69 @@
+name: Deploy API functions
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'api_layer/**'
+env:
+  GCP_PROJECT_ID: ${{vars.PROJECT_ID}}
+  REGION: asia-south1
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Configure gcloud CLI
+      uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ secrets.JSON_SOURCE_SERVICE_ACCOUNT }}
+    - name: Echo secrets
+      env:
+        # Feel free to rename this variable, but make sure to update it everywhere. You should paste your entire file in your secrets
+        LOGIN_API_KEY_FIREBASE : ${{secrets.LOGIN_API_KEY_FIREBASE}}
+        FIREBASE_SERVICE_ACCOUNT_JSON : ${{secrets.FIREBASE_SERVICE_ACCOUNT_JSON}}
+      run: |
+        echo "$FIREBASE_SERVICE_ACCOUNT_JSON" >> api_layer/serviceAccount.json
+        echo "$LOGIN_API_KEY_FIREBASE" >> api_layer/apiKeys.py
+        
+    - name: deploy the functions
+      run: |
+        cd api_layer
+        gcloud functions deploy get_credits_retired \
+        --project=carbon-registry-warehouse-dev \
+        --runtime=python38 \
+        --region=asia-south1 \
+        --source=. \
+        --entry-point=get_credits_retired \
+        --trigger-http \
+        --allow-unauthenticated
+
+        gcloud functions deploy get_projects \
+        --project=carbon-registry-warehouse-dev \
+        --runtime=python38 \
+        --region=asia-south1 \
+        --source=. \
+        --entry-point=get_projects \
+        --trigger-http \
+        --allow-unauthenticated
+
+        gcloud functions deploy get_credits_issued \
+        --project=carbon-registry-warehouse-dev \
+        --runtime=python38 \
+        --region=asia-south1 \
+        --source=. \
+        --entry-point=get_credits_issued \
+        --trigger-http \
+        --allow-unauthenticated
+
+        gcloud functions deploy login \
+        --project=carbon-registry-warehouse-dev \
+        --runtime=python38 \
+        --region=asia-south1 \
+        --source=. \
+        --entry-point=login \
+        --trigger-http \
+        --allow-unauthenticated
+   
+   
